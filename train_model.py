@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 import os
+import time
 
 from trans_ae import TransformingAutoencoder
 
@@ -11,7 +12,8 @@ tf.app.flags.DEFINE_string('train_dir', '/media/nikhil/hdv/event_summary', """Di
 tf.app.flags.DEFINE_integer('num_epochs', 20, "Number of epochs to train")
 tf.app.flags.DEFINE_integer('num_gpus', 1, "Number of gpus to use")
 tf.app.flags.DEFINE_integer('batch_size', 20, "Batch size")
-tf.app.flags.DEFINE_integer('save_counter', 2, "Save prediction after save_counter epochs")
+tf.app.flags.DEFINE_integer('save_checkpoint_every', 2, "Save prediction after save_checkpoint_every epochs")
+tf.app.flags.DEFINE_integer('save_pred_every', 1, "Save prediction after save_pred_every epochs")
 
 TOWER_NAME = 'tower'
 LEARNING_RATE_ADAM = 1e-4
@@ -32,7 +34,12 @@ class Model_Train:
         self.X_trans = X_trans
         self.trans = trans
         self.X_original = X_original
-        
+
+        if tf.gfile.Exists(FLAGS.train_dir):
+            tf.gfile.DeleteRecursively(FLAGS.train_dir)
+        tf.gfile.MakeDirs(FLAGS.train_dir)
+
+        print ("TRAIN Directory is %s" % (FLAGS.train_dir))
 
     def batch_for_step(self, step):
         return (self.X_trans[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], self.trans[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], self.X_original[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size])
@@ -59,6 +66,7 @@ class Model_Train:
                     batch_loss = encoder.loss(X_batch_pred, X_batch_out)
                     grads = opt.compute_gradients(batch_loss)
 
+                    tf.summary.scalar('loss', batch_loss)
                     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
                     # TODO 
                     # Apply gradients in cpu when multiple gpu
@@ -105,21 +113,39 @@ class Model_Train:
             meta_graph_def = tf.train.export_meta_graph(filename=FLAGS.train_dir+'/my-model.meta')
 
             print ('GRAPH is Saved!!')
-            sys.exit(0)
-            
+                        
             for epoch in range(FLAGS.num_epochs):
-
+                start_time = time.time()
+                epoch_loss = []
+                saveSummary = False
+                if epoch % FLAGS.save_pred_every == 0:
+                    saveSummary = True
+                    
                 for step in range(self.steps_per_epoch):
-                    pass
+                    
+                    x_batch, trans_batch, x_orig_batch = self.batch_for_step(step)
+                    feed_dict = {X_batch_in:x_orig_batch, extra_in:trans_batch, X_batch_out:x_batch} 
 
-                # Save prediction logs
-                # Print model loss
-                # Save checkpoint
+                    if saveSummary:
+                        step_loss, _, summary = sess.run([batch_loss, train_op, summary_op], feed_dict=feed_dict)
+                        summary_writer.add_summary(summary, epoch*self.steps_per_epoch + step)
+                    else:
+                        step_loss, _ = sess.run([batch_loss, train_op], feed_dict=feed_dict)
+                    epoch_loss.append(step_loss)
+                    
+                epoch_loss = sum(epoch_loss)
+                duration_time = time.time() - start_time
+                print ('Epoch {:d} with loss {:.3f}, ({:.3f} sec/step)'.format(epoch+1, epoch_loss, duration_time))
 
-
+                # Save model checkpoint
+                if epoch % FLAGS.save_checkpoint_every == 0:
+                    print 'Saving model checkpoint'
+                    checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+                    saver.save(sess, checkpoint_path, global_step=epoch)
+                
             print "Training Complete"
             sess.close()
-                
+            sys.stdout.flush()
         
         
         
