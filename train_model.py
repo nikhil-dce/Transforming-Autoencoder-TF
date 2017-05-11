@@ -8,11 +8,10 @@ from trans_ae import TransformingAutoencoder
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/media/nikhil/hdv/event_summary', """Directory where we write logs and checkpoints""")
-tf.app.flags.DEFINE_integer('num_epochs', 20, "Number of epochs to train")
+tf.app.flags.DEFINE_integer('num_epochs', 40, "Number of epochs to train")
 tf.app.flags.DEFINE_integer('num_gpus', 1, "Number of gpus to use")
-tf.app.flags.DEFINE_integer('batch_size', 20, "Batch size")
-tf.app.flags.DEFINE_integer('save_checkpoint_every', 2, "Save prediction after save_checkpoint_every epochs")
+tf.app.flags.DEFINE_integer('batch_size', 100, "Batch size")
+tf.app.flags.DEFINE_integer('save_checkpoint_every', 4, "Save prediction after save_checkpoint_every epochs")
 tf.app.flags.DEFINE_integer('save_pred_every', 1, "Save prediction after save_pred_every epochs")
 
 TOWER_NAME = 'tower'
@@ -73,7 +72,13 @@ class Model_Train:
 
                     for grad, var in grads:
                         if grad is not None:
-                            summaries.append(tf.summary.histogram(var.op.name + '\gradients', grad))
+                            if 'capsule' in var.op.name:
+                                if 'capsule_0' in var.op.name:
+                                    print var.op.name
+                                    summaries.append(tf.summary.histogram(var.op.name + '\gradients', grad))
+                            else:
+                                print 'no capsule- %s' % var.op.name 
+                                summaries.append(tf.summary.histogram(var.op.name + '\gradients', grad))
 
                     with tf.name_scope('gradients_apply'):
                         apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
