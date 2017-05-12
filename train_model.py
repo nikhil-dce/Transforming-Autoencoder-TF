@@ -18,6 +18,95 @@ TOWER_NAME = 'tower'
 LEARNING_RATE_ADAM = 1e-4
 MOVING_AVERAGE_DECAY = 0.9999
 
+
+class Model_Verify:
+
+    def __init__(self, X_trans, trans, X_original, in_dimen, r_dimen, g_dimen, num_capsules):
+
+        self.g_dimen = g_dimen
+        self.r_dimen = r_dimen
+        self.num_capsules = num_capsules
+        self.in_dimen = in_dimen
+
+        self.items = len(X_original)
+        self.steps_per_epoch = self.items / FLAGS.batch_size
+        
+        self.X_trans = X_trans
+        self.trans = trans
+        self.X_original = X_original
+
+    def batch_for_step(self, step):
+        return (self.X_trans[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], self.trans[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], self.X_original[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size])
+    
+    def eval_once(self, saver, X_batch_pred_op, batch_loss_op, variables_to_restore, X_batch_in, X_batch_out, trans):
+
+        print 'Eval once'
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth=True
+        config.allow_soft_placement = True
+        with tf.Session(config=config) as sess:
+            #ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+
+            print 'Search checkpoint in ' + FLAGS.chk_path
+            if FLAGS.chk_path:
+
+                print "Checkpoint path: " + FLAGS.chk_path
+                saver.restore(sess, FLAGS.chk_path)
+
+                global_step = FLAGS.chk_path.split('/')[-1].split('-')[-1]
+            else:
+                print ('No checkpoint exists')
+                return
+
+
+            print 'Checkpoint Loaded'
+
+            step = 0
+            total_loss = 0
+            accumulate_loss = []
+            X_accumulate_predictions = np.empty((0, self.in_dimen))
+
+            while step < self.steps_per_epoch:
+                X_out_step, trans_step, X_orig_step = self.batch_for_step(step)
+                feed_dict = {X_batch_in:X_orig_step, X_batch_out:X_out_step, trans:trans_step}
+                X_batch_predictions, batch_loss_value = sess.run([X_batch_pred_op, batch_loss_op], feed_dict=feed_dict)
+                
+                X_accumulate_predictions = np.append(X_accumulate_predictions, X_batch_predictions, axis=0)
+                accumulate_loss.append(batch_loss_value)
+                step += 1
+
+            total_loss = sum(accumulate_loss)
+            print ('Total Loss: {:.3f}'.format(total_loss))
+            print 'Total Prediction Shape: ' + str(X_accumulate_predictions.shape)
+            return X_accumulate_predictions
+        
+    def validate(self):
+        
+        with tf.Graph().as_default(), tf.device('/cpu:0'):
+            encoder = TransformingAutoencoder(self.in_dimen, self.r_dimen, self.g_dimen, self.num_capsules, FLAGS.batch_size)
+
+            # Input placeholders for each step
+            X_batch_in = tf.placeholder(tf.float32, shape=[None, 784])
+            X_batch_out = tf.placeholder(tf.float32, shape=[None, 784])
+            extra_in = tf.placeholder(tf.float32, shape=[None, 2])
+
+            # Only 1 GPU currently
+            with tf.device('/gpu:0'):
+                with tf.name_scope('%s_%d' % (TOWER_NAME, 0)) as scope:
+                    X_batch_pred = encoder.forward_pass(X_batch_in, extra_in)
+                    batch_loss = encoder.loss(X_batch_pred, X_batch_out)
+
+            print 'Graph created. Restore Variables from checkpoint'
+
+            variable_averages = tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY)
+            variables_to_restore = variable_averages.variables_to_restore()
+            saver = tf.train.Saver(variables_to_restore)
+
+            X_predictions = self.eval_once(saver, X_batch_pred, batch_loss, variables_to_restore, X_batch_in, X_batch_out, extra_in)
+
+            return X_predictions
+            
+
 class Model_Train:
 
     def __init__(self, X_trans, trans, X_original, num_capsules, r_dimen, g_dimen, in_dimen):
@@ -143,7 +232,7 @@ class Model_Train:
                 print ('Epoch {:d} with loss {:.3f}, ({:.3f} sec/step)'.format(epoch+1, epoch_loss, duration_time))
 
                 # Save model checkpoint
-                if epoch % FLAGS.save_checkpoint_every == 0:
+                if (epoch+1) % FLAGS.save_checkpoint_every == 0:
                     print 'Saving model checkpoint'
                     checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
                     saver.save(sess, checkpoint_path, global_step=epoch)
