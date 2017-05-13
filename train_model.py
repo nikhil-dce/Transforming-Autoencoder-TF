@@ -109,7 +109,7 @@ class Model_Verify:
 
 class Model_Train:
 
-    def __init__(self, X_trans, trans, X_original, num_capsules, r_dimen, g_dimen, in_dimen):
+    def __init__(self, X_trans, trans, X_original, num_capsules, r_dimen, g_dimen, in_dimen, resumeFromCheckpoint=None):
 
         self.g_dimen = g_dimen
         self.r_dimen = r_dimen
@@ -123,9 +123,15 @@ class Model_Train:
         self.trans = trans
         self.X_original = X_original
 
-        if tf.gfile.Exists(FLAGS.train_dir):
-            tf.gfile.DeleteRecursively(FLAGS.train_dir)
-        tf.gfile.MakeDirs(FLAGS.train_dir)
+        self.resumeTraining = False
+        if not resumeFromCheckpoint:
+            if tf.gfile.Exists(FLAGS.train_dir):
+                tf.gfile.DeleteRecursively(FLAGS.train_dir)
+            tf.gfile.MakeDirs(FLAGS.train_dir)
+        else:
+            self.resumeFromCheckpoint = resumeFromCheckpoint
+            self.resumeTraining = True
+            print 'Resuming after checkpoint: ' + resumeFromCheckpoint
 
         print ("TRAIN Directory is %s" % (FLAGS.train_dir))
 
@@ -200,12 +206,12 @@ class Model_Train:
 
             print 'Total Training Parameters: %d' % (total_parameters)
 
+            
             sess.run(init)
             print ('Variables Initialized')
 
             summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
             meta_graph_def = tf.train.export_meta_graph(filename=FLAGS.train_dir+'/my-model.meta')
-
             print ('GRAPH is Saved!!')
                         
             for epoch in range(FLAGS.num_epochs):
