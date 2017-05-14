@@ -1,3 +1,6 @@
+__author__ = "Nikhil Mehta"
+__copyright__ = "--"
+
 import tensorflow as tf
 import numpy as np
 import os
