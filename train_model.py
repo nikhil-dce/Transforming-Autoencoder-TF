@@ -8,11 +8,13 @@ from trans_ae import TransformingAutoencoder
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_integer('num_epochs', 40, "Number of epochs to train")
+tf.app.flags.DEFINE_integer('num_epochs', 2000, "Number of epochs to train")
 tf.app.flags.DEFINE_integer('num_gpus', 1, "Number of gpus to use")
 tf.app.flags.DEFINE_integer('batch_size', 100, "Batch size")
-tf.app.flags.DEFINE_integer('save_checkpoint_every', 4, "Save prediction after save_checkpoint_every epochs")
-tf.app.flags.DEFINE_integer('save_pred_every', 1, "Save prediction after save_pred_every epochs")
+tf.app.flags.DEFINE_integer('save_checkpoint_every', 50, "Save prediction after save_checkpoint_every epochs")
+tf.app.flags.DEFINE_integer('save_pred_every', 20, "Save prediction after save_pred_every epochs"
+)
+tf.app.flags.DEFINE_integer('save_checkpoint_after', 200, "Save prediction after epochs")
 
 TOWER_NAME = 'tower'
 LEARNING_RATE_ADAM = 1e-4
@@ -37,7 +39,7 @@ class Model_Verify:
 
     def batch_for_step(self, step):
         return (self.X_trans[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], self.trans[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], self.X_original[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size])
-    
+
     def eval_once(self, saver, X_batch_pred_op, batch_loss_op, variables_to_restore, X_batch_in, X_batch_out, trans):
 
         print 'Eval once'
@@ -187,7 +189,7 @@ class Model_Train:
             train_op = tf.group(apply_gradient_op, variable_average_op)
             summary_op = tf.summary.merge(summaries)
             
-            saver = tf.train.Saver(tf.global_variables())
+            saver = tf.train.Saver(tf.global_variables(), max_to_keep=50)
             init = tf.global_variables_initializer()
 
             config = tf.ConfigProto()
@@ -238,7 +240,7 @@ class Model_Train:
                 print ('Epoch {:d} with loss {:.3f}, ({:.3f} sec/step)'.format(epoch+1, epoch_loss, duration_time))
 
                 # Save model checkpoint
-                if (epoch+1) % FLAGS.save_checkpoint_every == 0:
+                if (epoch+1) % FLAGS.save_checkpoint_every == 0 and epoch >= FLAGS.save_checkpoint_after:
                     print 'Saving model checkpoint'
                     checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
                     saver.save(sess, checkpoint_path, global_step=epoch)

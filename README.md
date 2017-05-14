@@ -5,7 +5,7 @@ Tensorflow implementation of Transforming Autoencoders (Work in progress)
 
 ### 12 May '17
 Validation
-+Validation Code added
++ Validation Code added
 
 ### 11 May '17
 Training
