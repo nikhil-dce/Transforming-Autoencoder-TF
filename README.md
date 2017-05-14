@@ -1,21 +1,12 @@
 # Transforming-Autoencoder-TF
-Tensorflow implementation of Transforming Autoencoders (Work in progress) 
+Tensorflow implementation of "Transforming Autoencoders" (Proposed by G.E.Hinton, et al.)
 
-# Updates
+### Result
+Column 1 is the input and Column 2 is the expected output after translation. Column 3 represents the output generated from the transforming autoencoder after training for 800 epochs.
+![Result](extras/epoch_800.png)
 
-### 12 May '17
-Validation
-+ Validation Code added
-
-### 11 May '17
-Training
-+ Training with 60 capsules and 2 translation parameters for 40 epochs
-+ Training Error looks good
-
-### 10 May '17
-Setup
-+ Running `main.py` saves the graph in log dir.
-+ `capsule.py` correspond to the capsules mentioned in the paper "Transforming Autoencoders", G.E.Hinton, et al.
-
-
+### Source
++ `capsule.py` is the complex capsule which recognizes and generates the respective visual entity after applying the transformation
++ `trans_ae.py` creates the above capsules for all visual entities in the data
++ `tf_model.py` Trains and validates the code
 
