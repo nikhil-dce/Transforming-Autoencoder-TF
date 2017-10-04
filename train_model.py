@@ -7,15 +7,6 @@ import time
 from trans_ae import TransformingAutoencoder
 
 FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_integer('num_epochs', 2000, "Number of epochs to train")
-tf.app.flags.DEFINE_integer('num_gpus', 1, "Number of gpus to use")
-tf.app.flags.DEFINE_integer('batch_size', 100, "Batch size")
-tf.app.flags.DEFINE_integer('save_checkpoint_every', 50, "Save prediction after save_checkpoint_every epochs")
-tf.app.flags.DEFINE_integer('save_pred_every', 20, "Save prediction after save_pred_every epochs"
-)
-tf.app.flags.DEFINE_integer('save_checkpoint_after', 200, "Save prediction after epochs")
-
 TOWER_NAME = 'tower'
 LEARNING_RATE_ADAM = 1e-4
 MOVING_AVERAGE_DECAY = 0.9999
