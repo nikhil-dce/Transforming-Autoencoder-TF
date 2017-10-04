@@ -10,8 +10,7 @@ The paper (http://www.cs.toronto.edu/~fritz/absps/transauto6.pdf) provides techn
 
 The architecture uses capsules to recognize an implicitly defined visual entity over a domain of viewing conditions. It outputs both the probability that a particular visual entity is present and a set of "instantiation parameters" like pose, lighting and deformation of the visual entity relative to a canonical version of that entity. When this architecture is trained, the probability of visual entity is invariant as the entity moves over the manifold of possible appearances. The instantiation parameters, however, are "equivariant" -- parameters change by a corresponding amount as the viewing conditions change. 
 
-
-<p align="center"><img="https://raw.githubusercontent.com/nikhil-dce/Transforming-Autoencoder-TF/master/extras/architecture.png" width="600"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/nikhil-dce/Transforming-Autoencoder-TF/master/extras/architecture.png" width="800"></p>
 
 ## Source
 
