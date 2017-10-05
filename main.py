@@ -24,6 +24,7 @@ tf.app.flags.DEFINE_integer('batch_size', 100, "Batch size")
 tf.app.flags.DEFINE_integer('save_checkpoint_every', 200, "Save prediction after save_checkpoint_every epochs")
 tf.app.flags.DEFINE_integer('save_pred_every', 20, "Save prediction after save_pred_every epochs"
 )
+tf.app.flags.DEFINE_integer('save_checkpoint_after', 0, "Save prediction after epochs")
 tf.app.flags.DEFINE_integer('num_capsules', 60, "Number of capsules")
 tf.app.flags.DEFINE_integer('generator_dimen', 20, "Dimension of generator layer")
 tf.app.flags.DEFINE_integer('recognizer_dimen', 10, "Dimension of recognition layer")
